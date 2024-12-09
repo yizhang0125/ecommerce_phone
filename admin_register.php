@@ -7,14 +7,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
-    $stmt = $conn->prepare("INSERT INTO admins (name, email, password, created_at) VALUES (?, ?, ?, NOW())");
-    $stmt->bind_param("sss", $name, $email, $password);
-    
-    if ($stmt->execute()) {
-        echo "Registration successful!";
+    // Check if email already exists
+    $stmt = $conn->prepare("SELECT id FROM admins WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $error = "Email is already registered.";
     } else {
-        echo "Error: " . $stmt->error;
+        // Insert new admin if email is unique
+        $stmt = $conn->prepare("INSERT INTO admins (name, email, password, created_at) VALUES (?, ?, ?, NOW())");
+        $stmt->bind_param("sss", $name, $email, $password);
+        
+        if ($stmt->execute()) {
+            echo "Registration successful!";
+        } else {
+            echo "Error: " . $stmt->error;
+        }
     }
+
+    $stmt->close();
 }
 ?>
 
@@ -29,6 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container mt-5">
         <h1 class="mb-4">Admin Registration</h1>
+        <?php if (isset($error)): ?>
+            <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+        <?php endif; ?>
         <form method="post" action="">
             <div class="mb-3">
                 <label for="name" class="form-label">Name</label>

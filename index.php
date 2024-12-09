@@ -95,8 +95,11 @@ $result = $stmt->get_result();
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-lg">
     <div class="container">
-        <!-- Navbar Brand (No Logo) -->
-        <a class="navbar-brand fw-bold" href="#">E-Commerce Site</a>
+        <!-- Navbar Brand with Admin Icon -->
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="admin_login.php">
+            <i class="bi bi-shield-lock" style="font-size: 1.5rem; margin-right: 10px;"></i> 
+            E-Commerce Site
+        </a>
 
         <!-- Toggle Button for Mobile -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -140,10 +143,10 @@ $result = $stmt->get_result();
                     </li>
                 <?php endif; ?>
             </ul>
-
         </div>
     </div>
 </nav>
+
 
 
 <div class="container mt-5">
@@ -176,7 +179,9 @@ $result = $stmt->get_result();
         $carousel_images = [
             ['path' => 'uploads/iphone15.webp', 'caption' => 'iPhone 15 - The Future of Smartphones'],
             ['path' => 'uploads/magsafe.jpg', 'caption' => 'MagSafe - A New Way to Charge'],
-            ['path' => 'uploads/apple-watch.webp', 'caption' => 'Apple Watch - Your Health Companion']
+            ['path' => 'uploads/apple-watch.webp', 'caption' => 'Apple Watch - Your Health Companion'],
+            ['path' => 'uploads/AirPods.png', 'caption' => 'AirPods - Wireless Audio Freedom'],
+            ['path' => 'uploads/car-usb.jpg', 'caption' => 'Car USB Charger - Power On the Go']
         ];
         foreach ($carousel_images as $index => $image): ?>
             <div class="carousel-item <?php echo ($index === 0) ? 'active' : ''; ?>">
@@ -207,7 +212,7 @@ $result = $stmt->get_result();
                         <h5 class="card-title"><?php echo htmlspecialchars($row['name']); ?></h5>
                         <p class="card-text"><?php echo htmlspecialchars($row['description']); ?></p>
                         <p class="card-text"><strong>$<?php echo htmlspecialchars($row['price']); ?></strong></p>
-                        <p class="card-text">Available Stock: <?php echo htmlspecialchars($row['stock_quantity']); ?></p>
+                        <p class="card-text"><strong>Available Stock: <?php echo htmlspecialchars($row['stock_quantity']); ?></strong></p>
                         <form method="post" action="add_cart.php" class="mt-auto">
                             <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($row['id']); ?>">
                             <div class="mb-3">

@@ -6,20 +6,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $password = $_POST['password'];
 
-    // Prepare and execute query
+    // Prepare and execute query to get admin data by email
     $stmt = $conn->prepare("SELECT id, name, password FROM admins WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $stmt->store_result();
-    $stmt->bind_result($id, $name, $hashed_password);
-
+    
+    // Check if an admin with the given email exists
     if ($stmt->num_rows === 1) {
+        $stmt->bind_result($id, $name, $hashed_password);
         $stmt->fetch();
+
         // Verify the password
         if (password_verify($password, $hashed_password)) {
             // Store admin info in session
             $_SESSION['admin_id'] = $id;
             $_SESSION['admin_name'] = $name;
+            // Redirect to admin dashboard
             header("Location: admin_dashboard.php");
             exit();
         } else {
