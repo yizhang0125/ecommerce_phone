@@ -85,41 +85,49 @@ $result = $stmt->get_result();
                 <?php endwhile; ?>
             </div>
 
-            <!-- Orders Section -->
-            <div class="col-md-6">
-                <h2>Orders</h2>
-                <?php
-                // Fetch orders
-                $stmt = $conn->prepare("SELECT orders.id, orders.total_price, orders.order_date, orders.status, users.name AS user_name 
-                                        FROM orders 
-                                        JOIN users ON orders.user_id = users.id");
-                $stmt->execute();
-                $result = $stmt->get_result();
+<!-- Orders Section -->
+<div class="col-md-6">
+    <h2>Orders</h2>
+    <?php
+    // Fetch orders
+    $stmt = $conn->prepare("SELECT orders.id, orders.total_price, orders.order_date, orders.status, users.name AS user_name 
+                            FROM orders 
+                            JOIN users ON orders.user_id = users.id");
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-                while ($row = $result->fetch_assoc()): ?>
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title">Order ID: <?php echo htmlspecialchars($row['id']); ?></h5>
-                            <p class="card-text">
-                                Total Price: $<?php echo htmlspecialchars($row['total_price']); ?><br>
-                                Order Date: <?php echo htmlspecialchars($row['order_date']); ?><br>
-                                User: <?php echo htmlspecialchars($row['user_name']); ?><br>
-                                Status: <span class="badge <?php echo $row['status'] === 'Shipped' ? 'bg-success' : 'bg-secondary'; ?>">
-                                    <?php echo htmlspecialchars($row['status']); ?>
-                                </span>
-                            </p>
-                            <a href="view_order.php?id=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-info">View Details</a>
-                            <?php if ($row['status'] !== 'Shipped'): ?>
-                                <a href="ship_order.php?id=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-success">Ship Order</a>
-                            <?php endif; ?>
-                            <form method="post" action="delete_order.php" style="display:inline;">
-                                <input type="hidden" name="id" value="<?php echo htmlspecialchars($row['id']); ?>">
-                                <button type="submit" class="btn btn-danger">Delete Order</button>
-                            </form>
-                        </div>
-                    </div>
-                <?php endwhile; ?>
+    while ($row = $result->fetch_assoc()): ?>
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Order ID: <?php echo htmlspecialchars($row['id']); ?></h5>
+                <p class="card-text">
+                    Total Price: $<?php echo htmlspecialchars($row['total_price']); ?><br>
+                    Order Date: <?php echo htmlspecialchars($row['order_date']); ?><br>
+                    User: <?php echo htmlspecialchars($row['user_name']); ?><br>
+                    Status: <span class="badge <?php echo $row['status'] === 'Shipped' ? 'bg-success' : 'bg-secondary'; ?>">
+                        <?php echo htmlspecialchars($row['status']); ?>
+                    </span>
+                </p>
+                <a href="view_order.php?id=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-info">View Details</a>
+                
+                <!-- Add Completed button if the order is not completed or shipped -->
+                <?php if ($row['status'] !== 'Completed' && $row['status'] !== 'Shipped'): ?>
+                    <a href="complete_order.php?id=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-primary">Mark as Completed</a>
+                <?php endif; ?>
+
+                <?php if ($row['status'] !== 'Shipped'): ?>
+                    <a href="ship_order.php?id=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-success">Ship Order</a>
+                <?php endif; ?>
+                
+                <form method="post" action="delete_order.php" style="display:inline;">
+                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($row['id']); ?>">
+                    <button type="submit" class="btn btn-danger">Delete Order</button>
+                </form>
             </div>
+        </div>
+    <?php endwhile; ?>
+</div>
+
         </div>
     </div>
 
