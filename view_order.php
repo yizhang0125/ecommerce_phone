@@ -10,7 +10,7 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 $order_id = $_GET['id'];
 
 // Fetch order details
-$stmt = $conn->prepare("SELECT orders.id, orders.total_price, orders.order_date, orders.shipping_address, orders.shipping_city, orders.shipping_state, orders.shipping_zip, orders.shipping_status, users.name AS user_name
+$stmt = $conn->prepare("SELECT orders.id, orders.total_price, orders.order_date, orders.shipping_address, orders.shipping_city, orders.shipping_state, orders.shipping_zip, orders.shipping_status, orders.status AS order_status, users.name AS user_name
                         FROM orders
                         JOIN users ON orders.user_id = users.id
                         WHERE orders.id = ?");
@@ -32,6 +32,11 @@ $stmt = $conn->prepare("SELECT order_items.product_id, products.name, order_item
 $stmt->bind_param("i", $order_id);
 $stmt->execute();
 $items_result = $stmt->get_result();
+
+// Fetch shipping fee from settings (assuming it's stored in a settings table)
+$settings_result = $conn->query("SELECT shipping_fee FROM settings LIMIT 1");
+$settings = $settings_result->fetch_assoc();
+$shipping_fee = $settings ? $settings['shipping_fee'] : 0.00; // Default to 0 if no shipping fee is set
 ?>
 
 <!DOCTYPE html>
@@ -55,7 +60,40 @@ $items_result = $stmt->get_result();
                 <p><strong>City:</strong> <?php echo htmlspecialchars($order['shipping_city']); ?></p>
                 <p><strong>State:</strong> <?php echo htmlspecialchars($order['shipping_state']); ?></p>
                 <p><strong>ZIP Code:</strong> <?php echo htmlspecialchars($order['shipping_zip']); ?></p>
-                <p><strong>Shipping Status:</strong> <?php echo htmlspecialchars($order['shipping_status']); ?></p>
+                
+                <!-- Display Shipping Status with color -->
+                <p><strong>Shipping Status:</strong> 
+                    <span class="badge 
+                        <?php
+                        // Apply colors based on shipping status
+                        switch ($order['shipping_status']) {
+                            case 'Shipped':
+                                echo 'bg-success';
+                                break;
+                            case 'Pending':
+                                echo 'bg-warning';
+                                break;
+                            case 'Cancelled':
+                                echo 'bg-danger';
+                                break;
+                            case 'Processing':
+                                echo 'bg-info';
+                                break;
+                            default:
+                                echo 'bg-secondary';
+                        }
+                        ?>">
+                        <?php echo htmlspecialchars($order['shipping_status']); ?>
+                    </span>
+                </p>
+
+                <p><strong>Order Status:</strong> 
+                    <span class="badge <?php echo $order['order_status'] === 'Completed' ? 'bg-success' : ($order['order_status'] === 'Shipped' ? 'bg-primary' : 'bg-warning'); ?>">
+                        <?php echo htmlspecialchars($order['order_status']); ?>
+                    </span>
+                </p>
+
+                <p><strong>Shipping Fee:</strong> $<?php echo number_format($shipping_fee, 2); ?></p> <!-- Display shipping fee -->
             </div>
         </div>
 
@@ -84,8 +122,16 @@ $items_result = $stmt->get_result();
                 </tr>
                 <?php endwhile; ?>
                 <tr>
-                    <td colspan="3" class="text-end"><strong>Order Total</strong></td>
+                    <td colspan="3" class="text-end"><strong>Order Total (Excluding Shipping)</strong></td>
                     <td>$<?php echo number_format($order_total, 2); ?></td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="text-end"><strong>Shipping Fee</strong></td>
+                    <td>$<?php echo number_format($shipping_fee, 2); ?></td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="text-end"><strong>Total Price (Including Shipping)</strong></td>
+                    <td>$<?php echo number_format($order_total + $shipping_fee, 2); ?></td>
                 </tr>
             </tbody>
         </table>

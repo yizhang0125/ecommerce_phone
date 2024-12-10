@@ -8,8 +8,8 @@ if (!isset($_GET['id'])) {
 
 $order_id = $_GET['id'];
 
-// Fetch order details
-$stmt = $conn->prepare("SELECT orders.id, orders.total_price, orders.order_date, orders.status, users.name AS user_name
+// Fetch order details, including order total and shipping status
+$stmt = $conn->prepare("SELECT orders.id, orders.total_price, orders.order_date, orders.status, orders.shipping_status, users.name AS user_name
                         FROM orders 
                         JOIN users ON orders.user_id = users.id
                         WHERE orders.id = ?");
@@ -22,6 +22,16 @@ if ($order_result->num_rows === 0) {
 }
 
 $order = $order_result->fetch_assoc();
+
+// Fetch the shipping fee from the settings table
+$stmt = $conn->prepare("SELECT shipping_fee FROM settings WHERE id = 1"); // Assuming there's only one row with ID 1
+$stmt->execute();
+$settings_result = $stmt->get_result();
+$shipping_fee = 0; // Default value in case no setting is found
+
+if ($settings_result->num_rows > 0) {
+    $shipping_fee = $settings_result->fetch_assoc()['shipping_fee'];
+}
 
 // Fetch ordered products
 $stmt = $conn->prepare("SELECT products.name, order_items.quantity, order_items.price 
@@ -51,9 +61,14 @@ $items_result = $stmt->get_result();
                 <h5 class="card-title">Order ID: <?php echo htmlspecialchars($order['id']); ?></h5>
                 <p class="card-text">
                     Total Price: $<?php echo htmlspecialchars($order['total_price']); ?><br>
+                    Shipping Fee: $<?php echo htmlspecialchars($shipping_fee); ?><br>
                     Order Date: <?php echo htmlspecialchars($order['order_date']); ?><br>
                     Status: <span class="badge <?php echo $order['status'] === 'Shipped' ? 'bg-success' : 'bg-warning'; ?>">
                         <?php echo htmlspecialchars($order['status']); ?>
+                    </span><br>
+                    Shipping Status: <span class="badge 
+                        <?php echo $order['shipping_status'] === 'Delivered' ? 'bg-success' : ($order['shipping_status'] === 'Pending' ? 'bg-warning' : 'bg-danger'); ?>">
+                        <?php echo htmlspecialchars($order['shipping_status']); ?>
                     </span><br>
                     User: <?php echo htmlspecialchars($order['user_name']); ?>
                 </p>
@@ -85,3 +100,9 @@ $items_result = $stmt->get_result();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
+<?php
+// Close the database connection
+$stmt->close();
+$conn->close();
+?>

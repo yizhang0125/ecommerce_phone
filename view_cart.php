@@ -2,7 +2,14 @@
 session_start();
 require 'db_connection.php';
 
+// Ensure user is logged in
+if (!isset($_SESSION['user_id'])) {
+    die("User not logged in.");
+}
+
 $user_id = $_SESSION['user_id'];
+
+// Fetch cart items
 $stmt = $conn->prepare("SELECT cart.id, cart.quantity, products.name, products.price FROM cart 
                         JOIN products ON cart.product_id = products.id WHERE cart.user_id = ?");
 $stmt->bind_param("i", $user_id);
@@ -10,6 +17,16 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 $total = 0;
+
+// Fetch the shipping fee from settings table
+$stmt = $conn->prepare("SELECT shipping_fee FROM settings WHERE id = 1");
+$stmt->execute();
+$shipping_result = $stmt->get_result();
+$shipping_fee = 0; // Default value for shipping fee
+if ($shipping_result->num_rows > 0) {
+    $shipping_fee = $shipping_result->fetch_assoc()['shipping_fee'];
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -51,8 +68,12 @@ $total = 0;
                 endwhile;
                 ?>
                 <tr>
+                    <td colspan="3" class="text-end"><strong>Shipping Fee</strong></td>
+                    <td>$<?php echo number_format($shipping_fee, 2); ?></td>
+                </tr>
+                <tr>
                     <td colspan="3" class="text-end"><strong>Total</strong></td>
-                    <td>$<?php echo number_format($total, 2); ?></td>
+                    <td>$<?php echo number_format($total + $shipping_fee, 2); ?></td>
                 </tr>
             </tbody>
         </table>

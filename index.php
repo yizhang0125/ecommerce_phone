@@ -122,6 +122,12 @@ $result = $stmt->get_result();
                             <i class="bi bi-clock-history" style="font-size: 1.5rem; margin-right: 10px;"></i> Order History
                         </a>
                     </li>
+                    <!-- Payment History Icon with Larger Size -->
+                    <li class="nav-item">
+                        <a class="nav-link text-white d-flex align-items-center" href="payment_history.php">
+                            <i class="bi bi-credit-card-fill" style="font-size: 1.5rem; margin-right: 10px;"></i> Payment History
+                        </a>
+                    </li>
                 <?php endif; ?>
             </ul>
             <ul class="navbar-nav ms-auto">
@@ -146,7 +152,6 @@ $result = $stmt->get_result();
         </div>
     </div>
 </nav>
-
 
 
 <div class="container mt-5">
