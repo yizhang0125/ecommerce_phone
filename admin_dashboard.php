@@ -152,16 +152,18 @@
     </nav>
 
     <!-- Sidebar -->
-    <div class="sidebar">
-        <h4 class="text-white text-center">Admin Panel</h4>
-        <a href="admin_dashboard.php"><i class="bi bi-house-door"></i> Dashboard</a>
-        <a href="products_section.php"><i class="bi bi-box"></i> Products</a>
-        <a href="orders_section.php"><i class="bi bi-cart-fill"></i> Orders</a>
-        <a href="shipping_fees.php"><i class="bi bi-truck"></i> Shipping Fees</a>
-        <a href="add_product.php"><i class="bi bi-plus-circle-fill"></i> Add Product</a>
-        <a href="view_payment.php"><i class="bi bi-credit-card-fill"></i> View Payment</a>
-        <a href="index.php" class="text-decoration-none"><i class="bi bi-globe"></i> View Website</a>
-    </div>
+<div class="sidebar">
+    <h4 class="text-white text-center">Admin Panel</h4>
+    <a href="admin_dashboard.php"><i class="bi bi-house-door"></i> Dashboard</a>
+    <a href="products_section.php"><i class="bi bi-box"></i> Products</a>
+    <a href="orders_section.php"><i class="bi bi-cart-fill"></i> Orders</a>
+    <a href="shipping_fees.php"><i class="bi bi-truck"></i> Shipping Fees</a>
+    <a href="add_product.php"><i class="bi bi-plus-circle-fill"></i> Add Product</a>
+    <a href="view_payment.php"><i class="bi bi-credit-card-fill"></i> View Payment</a>
+    <a href="monthly_sales_chart.php"><i class="bi bi-bar-chart-fill"></i> Monthly Sales</a> <!-- New link for Monthly Sales -->
+    <a href="index.php" class="text-decoration-none"><i class="bi bi-globe"></i> View Website</a>
+</div>
+
 
     <!-- Main content -->
     <div class="main-content">
