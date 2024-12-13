@@ -9,10 +9,12 @@ if (!isset($_GET['id'])) {
 $order_id = $_GET['id'];
 
 // Fetch order details, including order total and shipping status
-$stmt = $conn->prepare("SELECT orders.id, orders.total_price, orders.order_date, orders.status, orders.shipping_status, users.name AS user_name
-                        FROM orders 
-                        JOIN users ON orders.user_id = users.id
-                        WHERE orders.id = ?");
+$stmt = $conn->prepare("SELECT orders.id, orders.total_price, orders.order_date, orders.status, 
+                              orders.shipping_status, users.name AS user_name, 
+                              orders.shipping_address, orders.shipping_city, orders.shipping_state, orders.shipping_zip
+                      FROM orders 
+                      JOIN users ON orders.user_id = users.id 
+                      WHERE orders.id = ?");
 $stmt->bind_param("i", $order_id);
 $stmt->execute();
 $order_result = $stmt->get_result();
@@ -74,6 +76,14 @@ $items_result = $stmt->get_result();
                 </p>
             </div>
         </div>
+
+        <h3 class="mt-4">Shipping Address</h3>
+        <p>
+            Address: <?php echo htmlspecialchars($order['shipping_address']); ?><br>
+            City: <?php echo htmlspecialchars($order['shipping_city']); ?><br>
+            State: <?php echo htmlspecialchars($order['shipping_state']); ?><br>
+            Zip Code: <?php echo htmlspecialchars($order['shipping_zip']); ?>
+        </p>
 
         <h3 class="mt-4">Ordered Products</h3>
         <table class="table table-bordered">
