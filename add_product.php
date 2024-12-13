@@ -1,6 +1,9 @@
 <?php
 require 'db_connection.php';
 
+// Start the session
+session_start();
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['name'], $_POST['description'], $_POST['price'], $_POST['stock_quantity'], $_POST['category_id'])) {
         $name = $_POST['name'];
@@ -14,8 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (isset($_FILES['image']) && $_FILES['image']['error'] == UPLOAD_ERR_OK) {
             $image = 'uploads/' . basename($_FILES['image']['name']);
             if (move_uploaded_file($_FILES['image']['tmp_name'], $image)) {
-                // Success message for debugging
-                // echo "Image uploaded successfully: $image<br>";
+                // Image uploaded successfully
             } else {
                 echo "Failed to upload image.<br>";
                 $image = ''; // No image uploaded
@@ -35,8 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt = $conn->prepare("INSERT INTO products (category_id, name, description, price, stock_quantity, image) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->bind_param("issdis", $category_id, $name, $description, $price, $stock_quantity, $image);
             if ($stmt->execute()) {
-                header("Location: admin_dashboard.php");
-                exit(); // Ensure no further code is executed after redirect
+                // Set success message and redirect to products_section.php
+                $_SESSION['success_message'] = "Product added successfully!";
+                header("Location: products_section.php");
+                exit();
             } else {
                 echo "Failed to add product: " . $stmt->error;
             }
@@ -46,8 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         echo "Required fields are missing.";
     }
-} else {
-    echo "Invalid request method.";
 }
 ?>
 
@@ -62,6 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <div class="container">
         <h2 class="mt-5">Add New Product</h2>
+
+
+
+        <!-- Product Addition Form -->
         <form method="post" action="add_product.php" enctype="multipart/form-data">
             <div class="mb-3">
                 <label for="name" class="form-label">Product Name</label>
@@ -83,9 +89,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <label for="category_id" class="form-label">Category</label>
                 <select class="form-select" id="category_id" name="category_id" required>
                     <option value="">Select Category</option>
-                    <!-- Populate categories dynamically -->
+                    <!-- Populate categories dynamically from the database -->
                     <option value="1">Phone</option>
                     <option value="2">Accessories</option>
+                    <!-- You can fetch these options dynamically from the database -->
                 </select>
             </div>
             <div class="mb-3">
@@ -94,8 +101,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
             <button type="submit" class="btn btn-primary">Add Product</button>
         </form>
+
+        <p class="mt-3">
+            <a href="admin_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+        </p>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Store admin info in session
             $_SESSION['admin_id'] = $id;
             $_SESSION['admin_name'] = $name;
+            $_SESSION['login_success'] = "Welcome back, $name!";
             // Redirect to admin dashboard
             header("Location: admin_dashboard.php");
             exit();

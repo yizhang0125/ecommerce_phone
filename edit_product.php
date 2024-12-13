@@ -1,6 +1,8 @@
-<?php
+<?php 
+session_start();
 require 'db_connection.php';
 
+// Handle form submission
 if (isset($_POST['id'], $_POST['name'], $_POST['description'], $_POST['price'], $_POST['stock_quantity'], $_POST['category_id'])) {
     $id = $_POST['id'];
     $name = $_POST['name'];
@@ -22,11 +24,17 @@ if (isset($_POST['id'], $_POST['name'], $_POST['description'], $_POST['price'], 
     }
 
     $stmt->execute();
-    header("Location: admin_dashboard.php");
+
+    // Set success message in session
+    $_SESSION['success_message'] = "Product updated successfully!";
+    header("Location: products_section.php"); // Redirect to the product sections page
+    exit();
 }
 ?>
+
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en">    
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,9 +46,18 @@ if (isset($_POST['id'], $_POST['name'], $_POST['description'], $_POST['price'], 
         <h2 class="mt-5">Update Product</h2>
 
         <?php
-        // Include database connection
-        require 'db_connection.php';
+        // Display success message if set
+        if (isset($_SESSION['success_message'])):
+        ?>
+            <div class="alert alert-success">
+                <?php
+                echo $_SESSION['success_message'];
+                unset($_SESSION['success_message']); // Remove the success message after displaying
+                ?>
+            </div>
+        <?php endif; ?>
 
+        <?php
         // Fetch the product details from the database
         if (isset($_GET['id'])) {
             $product_id = $_GET['id'];
@@ -113,4 +130,3 @@ if (isset($_POST['id'], $_POST['name'], $_POST['description'], $_POST['price'], 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

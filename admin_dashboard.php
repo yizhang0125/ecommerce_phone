@@ -1,163 +1,268 @@
-<?php
-session_start();
-require 'db_connection.php';
+<?php 
+    session_start();
+    require 'db_connection.php';
 
-// Check if the admin is logged in
-if (!isset($_SESSION['admin_id'])) {
-    // Redirect to the login page if not logged in
-    header('Location: admin_login.php');
-    exit();
+    // Check if the admin is logged in
+    if (!isset($_SESSION['admin_id'])) {
+        // Redirect to the login page if not logged in
+        header('Location: admin_login.php');
+        exit();
+    }
+
+    // Fetch admin's name from session
+    $admin_name = $_SESSION['admin_name'];
+    
+    $success_message = isset($_SESSION['login_success']) ? $_SESSION['login_success'] : null;
+
+    // Clear the success message after displaying it
+    unset($_SESSION['login_success']);
+    ?>
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin Dashboard</title>
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+        <style>
+/* Navbar and Sidebar color */
+.navbar, .sidebar {
+    background-color: #343a40; /* Same color for both navbar and sidebar */
 }
 
-// Fetch admin's name from session
-$admin_name = $_SESSION['admin_name'];
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+.header-container .logo {
+    width: 200px; /* Adjust width as needed */
+    height: auto; /* Maintain aspect ratio */
+    margin-right: 2px; /* Space between logo and heading */
+}
+.navbar {
+    margin-bottom: 30px;
+}
 
-// Fetch products
-$stmt = $conn->prepare("SELECT products.id, products.name, products.price, products.stock_quantity, categories.name AS category_name 
-                        FROM products 
-                        JOIN categories ON products.category_id = categories.id");
-$stmt->execute();
-$result = $stmt->get_result();
+/* Sidebar Styles */
+.sidebar {
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 250px;
+    padding-top: 30px;
+}
 
-?>
+.sidebar a {
+    color: #fff;
+    padding: 12px 18px; /* Slightly larger padding for better spacing */
+    text-decoration: none;
+    display: block;
+    margin: 8px 0; /* Adjusted margin for better spacing */
+    border-radius: 5px;
+    font-size: 16px; /* Slightly increased font size */
+}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        .header-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 30px;
-        }
-        .header-container .logo {
-            width: 200px; /* Adjust width as needed */
-            height: auto; /* Maintain aspect ratio */
-            margin-right: 2px; /* Space between logo and heading */
-        }
-        .navbar {
-            margin-bottom: 30px;
-        }
-    </style>
-</head>
-<body>
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="admin_dashboard.php">Admin Dashboard</a>
-        <div class="d-flex align-items-center">
-            <!-- View Website Button -->
-            <a href="index.php" class="btn btn-link text-decoration-none text-white-50 me-3 view-website">
-                <i class="bi bi-globe me-2"></i>View Website
-            </a>
-            <!-- Shipping Fees Link with Icon -->
-            <a href="shipping_fees.php" class="btn btn-link text-decoration-none text-white-50 me-3">
-                <i class="bi bi-truck me-2"></i>Shipping Fees
-            </a>
-            <!-- Admin Name and Logout Button -->
-            <span class="navbar-text me-3">
-                <i class="bi bi-person-circle me-2"></i> <?php echo htmlspecialchars($admin_name); ?>
-            </span>
-            <a href="admin_logout.php" class="btn btn-transparent text-white">Logout</a>
+.sidebar a i {
+    font-size: 20px; /* Slightly increased icon size */
+    margin-right: 10px; /* Space between icon and text */
+}
+
+.sidebar a:hover {
+    background-color: #007bff;
+}
+
+/* Main content styles */
+.main-content {
+    margin-left: 260px;
+    padding: 20px;
+}
+
+/* Box Cards for Actions */
+.action-box {
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+.action-box:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    transform: translateY(-5px);
+}
+.action-box i {
+    font-size: 50px;
+    margin-bottom: 10px;
+}
+.action-box a {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #007bff;
+}
+
+/* Media Query for phones (up to 768px) */
+@media (max-width: 768px) {
+    .sidebar {
+        display: block; /* Show sidebar */
+    }
+
+    .main-content {
+        margin-left: 0; /* Full width for main content */
+    }
+
+    .sidebar-toggle {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 8px; /* Minimal border-radius for a square shape */
+    z-index: 1050;
+}
+
+}
+        </style>
+    </head>
+    <body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="admin_dashboard.php">Admin Dashboard</a>
+            <div class="d-flex align-items-center">
+                <!-- Admin Name and Logout Button -->
+                <span class="navbar-text me-3">
+                    <i class="bi bi-person-circle me-2"></i> <?php echo htmlspecialchars($admin_name); ?>
+                </span>
+                <a href="admin_logout.php" class="btn btn-transparent text-white">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h4 class="text-white text-center">Admin Panel</h4>
+        <a href="admin_dashboard.php"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="products_section.php"><i class="bi bi-box"></i> Products</a>
+        <a href="orders_section.php"><i class="bi bi-cart-fill"></i> Orders</a>
+        <a href="shipping_fees.php"><i class="bi bi-truck"></i> Shipping Fees</a>
+        <a href="add_product.php"><i class="bi bi-plus-circle-fill"></i> Add Product</a>
+        <a href="view_payment.php"><i class="bi bi-credit-card-fill"></i> View Payment</a>
+        <a href="index.php" class="text-decoration-none"><i class="bi bi-globe"></i> View Website</a>
+    </div>
+
+    <!-- Main content -->
+    <div class="main-content">
+        <!-- Success Message (Placed in the main content area) -->
+        <?php if ($success_message): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($success_message); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php endif; ?>
+
+        <h2>Welcome to the Admin Dashboard</h2>
+        <p>Use the boxes below to manage products, orders, and other website settings.</p>
+
+        <!-- Action Boxes -->
+        <div class="row">
+            <!-- Add Product Box -->
+            <div class="col-md-3">
+                <div class="action-box">
+                    <i class="bi bi-plus-circle-fill text-success"></i>
+                    <h4>Add Product</h4>
+                    <a href="add_product.php">Go to Add Product</a>
+                </div>
+            </div>
+
+            <!-- View Products Box -->
+            <div class="col-md-3">
+                <div class="action-box">
+                    <i class="bi bi-boxes text-info"></i>
+                    <h4>Products</h4>
+                    <a href="products_section.php">Go to View Products</a>
+                </div>
+            </div>
+
+            <!-- View Orders Box -->
+            <div class="col-md-3">
+                <div class="action-box">
+                    <i class="bi bi-cart-fill text-primary"></i>
+                    <h4>View Orders</h4>
+                    <a href="orders_section.php">Go to Orders</a>
+                </div>
+            </div>
+
+            <!-- Shipping Fees Box -->
+            <div class="col-md-3">
+                <div class="action-box">
+                    <i class="bi bi-truck text-warning"></i>
+                    <h4>Shipping Fees</h4>
+                    <a href="shipping_fees.php">Manage Shipping Fees</a>
+                </div>
+            </div>
+
+            <!-- View Website Box -->
+            <div class="col-md-3">
+                <div class="action-box">
+                    <i class="bi bi-globe text-info"></i>
+                    <h4>View Website</h4>
+                    <a href="index.php" class="text-decoration-none">Go to View Website</a>
+                </div>
+            </div>
+
+            <!-- View Payment Box -->
+            <div class="col-md-3">
+                <div class="action-box">
+                    <i class="bi bi-credit-card-fill text-secondary"></i>
+                    <h4>View Payment</h4>
+                    <a href="view_payment.php">Go to View Payment</a>
+                </div>
+            </div>
+
+            <!-- Today's Earnings Box -->
+            <div class="col-md-3">
+                <div class="action-box">
+                    <i class="bi bi-cash-coin text-success"></i>
+                    <h4>Today's Earnings</h4>
+                    <a href="earn_money.php">Today's Earnings</a>
+                </div>
+            </div>
+
+               <!-- Monthly Sales Chart Box -->
+                <div class="col-md-3">
+                    <div class="action-box">
+                        <i class="bi bi-bar-chart-line text-primary"></i>
+                        <h4>Monthly Sales</h4>
+                        <a href="monthly_sales_chart.php">View Monthly Sales</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</nav>
-
-
-
-    <div class="container">
-        <!-- Products Section -->
-        <div class="row">
-            <div class="col-md-6">
-                <h2>Products</h2>
-                <!-- Add Product Button -->
-                <a href="add_product.php" class="btn btn-primary mb-3">Add Product</a>
-
-                <?php
-                // Fetch products
-                $stmt = $conn->prepare("SELECT products.id, products.name, products.price, products.stock_quantity, categories.name AS category_name 
-                                        FROM products 
-                                        JOIN categories ON products.category_id = categories.id");
-                $stmt->execute();
-                $result = $stmt->get_result();
-
-                while ($row = $result->fetch_assoc()): ?>
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title"><?php echo htmlspecialchars($row['name']); ?></h5>
-                            <p class="card-text">
-                                Price: $<?php echo htmlspecialchars($row['price']); ?><br>
-                                Stock: <?php echo htmlspecialchars($row['stock_quantity']); ?><br>
-                                Category: <?php echo htmlspecialchars($row['category_name']); ?>
-                            </p>
-                            <a href="edit_product.php?id=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-warning">Edit</a>
-                            <form method="post" action="delete_product.php" style="display:inline;">
-                                <input type="hidden" name="id" value="<?php echo htmlspecialchars($row['id']); ?>">
-                                <button type="submit" class="btn btn-danger">Delete</button>
-                            </form>
-                        </div>
-                    </div>
-                <?php endwhile; ?>
-            </div>
-
-<!-- Orders Section -->
-<div class="col-md-6">
-    <h2>Orders</h2>
-    <?php
-    // Fetch orders along with shipping status
-    $stmt = $conn->prepare("SELECT orders.id, orders.total_price, orders.order_date, orders.status, orders.shipping_status, users.name AS user_name 
-                            FROM orders 
-                            JOIN users ON orders.user_id = users.id");
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    while ($row = $result->fetch_assoc()): ?>
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Order ID: <?php echo htmlspecialchars($row['id']); ?></h5>
-                <p class="card-text">
-                    Total Price: $<?php echo htmlspecialchars($row['total_price']); ?><br>
-                    Order Date: <?php echo htmlspecialchars($row['order_date']); ?><br>
-                    User: <?php echo htmlspecialchars($row['user_name']); ?><br>
-                    Status: <span class="badge <?php echo $row['status'] === 'Shipped' ? 'bg-success' : 'bg-secondary'; ?>">
-                        <?php echo htmlspecialchars($row['status']); ?>
-                    </span><br>
-
-                    <!-- Display shipping status -->
-                    <strong>Shipping Status:</strong> 
-                    <span class="badge <?php echo $row['shipping_status'] === 'Shipped' ? 'bg-success' : 'bg-warning'; ?>">
-                        <?php echo htmlspecialchars($row['shipping_status']); ?>
-                    </span>
-                </p>
-                <a href="view_order.php?id=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-info">View Details</a>
-                
-                <!-- Add Completed button if the order is not completed or shipped -->
-                <?php if ($row['status'] !== 'Completed' && $row['status'] !== 'Shipped'): ?>
-                    <a href="complete_order.php?id=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-primary">Mark as Completed</a>
-                <?php endif; ?>
-
-                <?php if ($row['status'] !== 'Shipped'): ?>
-                    <a href="ship_order.php?id=<?php echo htmlspecialchars($row['id']); ?>" class="btn btn-success">Ship Order</a>
-                <?php endif; ?>
-                
-                <form method="post" action="delete_order.php" style="display:inline;">
-                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($row['id']); ?>">
-                    <button type="submit" class="btn btn-danger">Delete Order</button>
-                </form>
-            </div>
-        </div>
-    <?php endwhile; ?>
-</div>
-
+    
+    <!-- Sidebar Toggle Button for Phones -->
+    <button class="sidebar-toggle d-lg-none">☰</button>
 
     <!-- Bootstrap JS (Optional, for interactive components) -->
+    <script>
+        document.querySelector('.sidebar-toggle').addEventListener('click', function() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.style.left = sidebar.style.left === '0px' ? '-255px' : '0px';
+        });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    </body>
+    </html>

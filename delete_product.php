@@ -1,4 +1,5 @@
 <?php
+session_start();
 require 'db_connection.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -10,7 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt) {
                 $stmt->bind_param("i", $id);
                 if ($stmt->execute()) {
-                    header("Location: admin_dashboard.php");
+                    $_SESSION['success_message'] = "Product deleted successfully!";
+                    header("Location: products_section.php");
                     exit(); // Ensure no further code is executed
                 } else {
                     echo "Error deleting record: " . $stmt->error;

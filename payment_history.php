@@ -4,7 +4,26 @@ require 'db_connection.php';
 
 $user_id = $_SESSION['user_id']; // Assuming user is logged in and user_id is stored in session
 
-// Fetch payment details for the user, including the order total from the orders table and associated products, along with cardholder information
+// Define the number of items per page (10 orders per page)
+$orders_per_page = 15;
+
+// Get the current page number (default to 1 if not set)
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $orders_per_page;
+
+// Fetch the total number of records for the user to calculate total pages
+$count_stmt = $conn->prepare("SELECT COUNT(DISTINCT o.id) AS total FROM payments p
+                              JOIN orders o ON p.order_id = o.id
+                              WHERE o.user_id = ?");
+$count_stmt->bind_param("i", $user_id);
+$count_stmt->execute();
+$count_result = $count_stmt->get_result();
+$total_orders = $count_result->fetch_assoc()['total'];
+
+// Calculate total number of pages
+$total_pages = ceil($total_orders / $orders_per_page);
+
+// Fetch payment details for the current page
 $stmt = $conn->prepare("
     SELECT p.id AS payment_id, p.order_id, o.total_price, p.payment_status, p.created_at, p.card_holder, oi.quantity, pr.name AS product_name, oi.price AS product_price
     FROM payments p
@@ -13,12 +32,13 @@ $stmt = $conn->prepare("
     JOIN products pr ON oi.product_id = pr.id
     WHERE o.user_id = ?
     ORDER BY p.created_at DESC
+    LIMIT ? OFFSET ?
 ");
-$stmt->bind_param("i", $user_id);
+$stmt->bind_param("iii", $user_id, $orders_per_page, $offset);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Assuming you have a 'settings' table or similar where the shipping fee is stored
+// Fetch the shipping fee from the settings
 $settings_result = $conn->query("SELECT shipping_fee FROM settings LIMIT 1");
 $settings = $settings_result->fetch_assoc();
 $shipping_fee = $settings ? $settings['shipping_fee'] : 0.00; // Default to 0 if no shipping fee is set
@@ -143,6 +163,32 @@ $shipping_fee = $settings ? $settings['shipping_fee'] : 0.00; // Default to 0 if
             echo "</div>"; // Close the last card
         } ?>
 
+        <!-- Pagination Links -->
+        <nav>
+            <ul class="pagination justify-content-center">
+                <?php if ($page > 1): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="?page=<?php echo $page - 1; ?>" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <li class="page-item <?php echo ($i == $page) ? 'active' : ''; ?>">
+                        <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                    </li>
+                <?php endfor; ?>
+
+                <?php if ($page < $total_pages): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="?page=<?php echo $page + 1; ?>" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                <?php endif; ?>
+            </ul>
+        </nav>
     </div>
 
     <!-- Bootstrap JS (Optional, for interactive components) -->
@@ -153,5 +199,6 @@ $shipping_fee = $settings ? $settings['shipping_fee'] : 0.00; // Default to 0 if
 <?php
 // Close the database connection
 $stmt->close();
+$count_stmt->close();
 $conn->close();
 ?>

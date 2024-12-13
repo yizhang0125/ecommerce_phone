@@ -1,18 +1,19 @@
 <?php
 // Include the database connection
-include('db_connection.php');   
+include('db_connection.php');
 
 // Get POST data from the form
 $order_id = isset($_POST['order_id']) ? $_POST['order_id'] : '';
 $card_number = isset($_POST['cardNumber']) ? $_POST['cardNumber'] : '';
 $card_holder = isset($_POST['cardHolder']) ? $_POST['cardHolder'] : '';
-$exp_date = '02/24'; // Hardcoded expiration date or dynamically passed if needed
+$exp_date = isset($_POST['cardExpiry']) ? $_POST['cardExpiry'] : ''; // Get expiration date from the hidden input
 $payment_status = 'Pending'; // Initial payment status
 
 // Ensure the data is safe to insert
 $order_id = $conn->real_escape_string($order_id);
 $card_number = $conn->real_escape_string($card_number);
 $card_holder = $conn->real_escape_string($card_holder);
+$exp_date = $conn->real_escape_string($exp_date); // Ensure expiration date is also escaped
 
 // Start a transaction to ensure data consistency
 $conn->begin_transaction();

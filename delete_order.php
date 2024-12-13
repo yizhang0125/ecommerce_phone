@@ -33,16 +33,20 @@ if (isset($_POST['id'])) {
 
         // Commit the transaction
         $conn->commit();
+
+        // Redirect with a success message
+        header('Location: orders_section.php?success=Delete Orders Successfull');
+        exit();
     } catch (Exception $e) {
         // Rollback the transaction if something failed
         $conn->rollback();
-        die("Error: " . $e->getMessage());
-    }
 
-    // Redirect to the dashboard
-    header('Location: admin_dashboard.php');
-    exit();
+        // Redirect with an error message
+        header('Location: orders_section.php?error=' . urlencode("Error deleting order: " . $e->getMessage()));
+        exit();
+    }
 } else {
-    die("Order ID not specified.");
+    // Redirect with an error message if order ID is not set
+    header('Location: orders_section.php?error=Order ID not specified.');
+    exit();
 }
-?>
