@@ -127,6 +127,48 @@ $cardExpiry = isset($_POST['cardExpiry']) ? $_POST['cardExpiry'] : '02/24';
             width: auto;
             border-radius: 8px;
         }
+                /* Smaller Media Query for Mobile */
+@media (max-width: 360px) {
+    .bank-card {
+        width: 320px;  /* Smaller width */
+        height: 200px;  /* Smaller height */
+        padding: 15px;  /* Reduced padding */
+    }
+
+    .bank-card-header img {
+        height: 30px;  /* Smaller image height */
+    }
+
+    .bank-card-chip img {
+        width: 40px;  /* Smaller chip image width */
+    }
+
+    .bank-card-logo img {
+        height: 25px;  /* Smaller logo height */
+    }
+
+    .bank-card-number {
+        font-size: 1.6rem;  /* Smaller font size */
+    }
+
+    .bank-card-number input {
+        font-size: 1.6rem;  /* Smaller input font size */
+    }
+
+    .bank-card-footer input {
+        font-size: 1rem;  /* Smaller font size for footer input */
+        width: 300px;  /* Adjust width for smaller screens */
+    }
+
+    .bank-card-holder {
+        font-size: 1rem;  /* Smaller font size */
+    }
+
+    .btn-success {
+        font-size: 0.9rem;  /* Smaller button size */
+        padding: 8px 20px;  /* Reduced padding */
+    }
+}
     </style>
 </head>
 <body>

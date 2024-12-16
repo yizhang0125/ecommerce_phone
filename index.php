@@ -59,18 +59,23 @@ $result = $stmt->get_result();
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        .carousel-item img {
-            max-width: 900px; /* Increase the width further */
-            max-height: 500px; /* Increase the height further */
-            object-fit: contain; /* Ensure the image fits without cropping */
-            margin: 0 auto; /* Center the image horizontally */
-            display: block; /* Center the image */
-        }
-        .carousel-caption {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            border-radius: 5px;
-        }
+.carousel-item img {
+    max-width: 100%; /* Adjust to the container's width */
+    max-height: 300px; /* Limit height for smaller screens */
+    object-fit: contain;
+    margin: 0 auto;
+}
+
+.carousel-caption {
+        background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+        padding: 10px; /* Padding for the caption */
+        border-radius: 5px; /* Rounded corners */
+        font-size: 24px; /* Consistent font size for all screens */
+        text-align: center; /* Center the text */
+    }
+    .carousel-caption h5 {
+        margin: 0; /* Remove extra margin */
+    }
         .card {
             display: flex;
             flex-direction: column;
@@ -191,9 +196,11 @@ $result = $stmt->get_result();
         foreach ($carousel_images as $index => $image): ?>
             <div class="carousel-item <?php echo ($index === 0) ? 'active' : ''; ?>">
                 <img src="<?php echo htmlspecialchars($image['path']); ?>" class="d-block" alt="Slide <?php echo $index + 1; ?>">
-                <div class="carousel-caption d-none d-md-block">
-                    <h5><?php echo htmlspecialchars($image['caption']); ?></h5>
-                </div>
+                <div class="carousel-caption d-block">
+    <h5><?php echo htmlspecialchars($image['caption']); ?></h5>
+</div>
+
+
             </div>
         <?php endforeach; ?>
     </div>
