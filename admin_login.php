@@ -2,38 +2,32 @@
 session_start();
 require 'db_connection.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$error_message = ''; // Variable to store error message
+
+if (isset($_POST['email'], $_POST['password'])) {
     $email = $_POST['email'];
     $password = $_POST['password'];
 
-    // Prepare and execute query to get admin data by email
     $stmt = $conn->prepare("SELECT id, name, password FROM admins WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
-    $stmt->store_result();
-    
-    // Check if an admin with the given email exists
-    if ($stmt->num_rows === 1) {
-        $stmt->bind_result($id, $name, $hashed_password);
-        $stmt->fetch();
+    $result = $stmt->get_result();
 
-        // Verify the password
-        if (password_verify($password, $hashed_password)) {
-            // Store admin info in session
-            $_SESSION['admin_id'] = $id;
-            $_SESSION['admin_name'] = $name;
-            $_SESSION['login_success'] = "Welcome back, $name!";
-            // Redirect to admin dashboard
+    if ($result->num_rows > 0) {
+        $admin = $result->fetch_assoc();
+        if (password_verify($password, $admin['password'])) {
+            $_SESSION['admin_id'] = $admin['id'];
+            $_SESSION['admin_name'] = $admin['name'];
+            $_SESSION['success_message'] = 'Login successful! Welcome back!';
+
             header("Location: admin_dashboard.php");
             exit();
         } else {
-            $error = "Invalid password.";
+            $error_message = "Invalid password";
         }
     } else {
-        $error = "No account found with that email.";
+        $error_message = "Invalid email";
     }
-
-    $stmt->close();
 }
 ?>
 
@@ -42,190 +36,400 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login</title>
+    <title>Admin Login | PhoneStore</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        /* Page Background */
-        body {
-            background: linear-gradient(135deg, #ff7e5f, #feb47b); /* Warm gradient for eCommerce */
-            font-family: 'Poppins', sans-serif; /* Modern font for clean design */
-            color: #333;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        :root {
+            --primary: #4f46e5;
+            --secondary: #6366f1;
+            --dark: #1e1b4b;
+            --light: #f5f3ff;
+            --text: #4b5563;
         }
 
-        /* Login Container Styling */
+        body {
+            min-height: 100vh;
+            background: var(--light);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%);
+            overflow: hidden;
+        }
+
+        /* Copy all animation styles from user_login.php */
+        .bubbles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            animation: bubbleFloat 15s infinite;
+            opacity: 0;
+        }
+
+        .bubble:nth-child(1) { width: 80px; height: 80px; left: 10%; animation-delay: 0s; }
+        .bubble:nth-child(2) { width: 60px; height: 60px; left: 30%; animation-delay: -2s; }
+        .bubble:nth-child(3) { width: 90px; height: 90px; left: 50%; animation-delay: -4s; }
+        .bubble:nth-child(4) { width: 70px; height: 70px; left: 70%; animation-delay: -6s; }
+        .bubble:nth-child(5) { width: 85px; height: 85px; left: 90%; animation-delay: -8s; }
+
+        @keyframes bubbleFloat {
+            0% { transform: translateY(120vh) scale(0); opacity: 0; }
+            50% { opacity: 0.2; }
+            100% { transform: translateY(-20vh) scale(1); opacity: 0; }
+        }
+
+        .waves {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-45deg) scale(1.5);
+        }
+
+        .wave {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            opacity: 0.1;
+            border-radius: 40%;
+            animation: waveRotate 15s linear infinite;
+        }
+
+        .wave:nth-child(1) { animation-duration: 15s; }
+        .wave:nth-child(2) { animation-duration: 20s; opacity: 0.05; }
+        .wave:nth-child(3) { animation-duration: 25s; opacity: 0.075; }
+
+        @keyframes waveRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .dots {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: dotGlow 4s infinite;
+        }
+
+        .dot:nth-child(1) { top: 20%; left: 20%; animation-delay: 0s; }
+        .dot:nth-child(2) { top: 40%; left: 60%; animation-delay: -1s; }
+        .dot:nth-child(3) { top: 60%; left: 40%; animation-delay: -2s; }
+        .dot:nth-child(4) { top: 80%; left: 80%; animation-delay: -3s; }
+
+        @keyframes dotGlow {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(2); opacity: 0.1; }
+        }
+
         .login-container {
             width: 100%;
-            max-width: 450px;
-            background: #ffffff; /* White box for contrast */
-            padding: 40px 30px;
-            border-radius: 12px; /* Rounded corners for modern feel */
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); /* Soft shadow for depth */
-            text-align: center;
-        }
-
-        /* Logo Styling */
-        .logo {
-            display: block;
-            margin: 0 auto 20px;
-            max-width: 200px; /* Larger logo size */
-            height: auto;
-        }
-
-        /* Title Styling */
-        .login-container h1 {
-            font-size: 28px;
-            font-weight: 700;
-            color: #333; /* Dark text for readability */
-            margin-bottom: 25px;
-        }
-
-        /* Form Field Styling */
-        .form-label {
-            font-size: 14px;
-            font-weight: 500;
-            color: #555; /* Subtle label color */
-            text-align: left;
-        }
-
-        input[type="email"],
-        input[type="password"] {
-            width: 100%;
-            background: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 12px 15px;
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 15px;
+            max-width: 1200px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
             position: relative;
         }
 
-        .password-toggle {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            cursor: pointer;
-            display: flex; /* Ensures the icon remains visible */
-            align-items: center;
-            height: 100%;
-        }
-        
-        input[type="password"]:focus {
-            border-color: #ff7e5f;
-            outline: none;
-            box-shadow: 0 0 6px rgba(255, 126, 95, 0.5);
+        .login-banner {
+            flex: 1;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 4rem;
+            position: relative;
+            color: white;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Button Styling */
-        .btn-primary {
+        .banner-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-logo {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .banner-header {
+            animation: textAppear 0.8s ease-out 0.6s backwards;
+        }
+
+        .banner-header h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .banner-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .features-list {
+            margin-top: auto;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-form {
+            flex: 1;
+            padding: 4rem;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-control {
             width: 100%;
-            background: linear-gradient(135deg, #ff7e5f, #feb47b);
+            padding: 1rem 1.25rem;
+            font-size: 1rem;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
             border: none;
-            color: #fff;
-            font-size: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
             font-weight: 600;
-            padding: 12px;
-            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #feb47b, #ff7e5f);
-            box-shadow: 0 4px 10px rgba(255, 126, 95, 0.3);
-            transform: scale(1.03);
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);
         }
 
-        /* Alert Styling */
+        .form-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #666;
+        }
+
+        .form-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
         .alert {
-            font-size: 14px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            background: rgba(255, 59, 59, 0.1);
-            color: #ff3b3b;
-            border: 1px solid #ff3b3b;
-            text-align: left;
+            animation: alertSlide 0.5s ease-out;
         }
 
-        /* Responsive Design */
-        @media (max-width: 576px) {
+        @keyframes alertSlide {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 992px) {
             .login-container {
-                max-width: 90%;
-                padding: 30px 20px;
+                flex-direction: column;
             }
 
-            .login-container h1 {
-                font-size: 24px;
+            .login-banner {
+                padding: 3rem 2rem;
+                min-height: auto;
             }
 
-            .btn-primary {
-                font-size: 14px;
-                padding: 10px;
+            .login-form {
+                padding: 3rem 2rem;
             }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <!-- Logo -->
-        <img src="uploads/logo.webp" alt="Admin Logo" class="logo">
-        
-        <!-- Title -->
-        <h1>Admin Login</h1>
-        
-        <!-- Error Message -->
-        <?php if (isset($error)): ?>
-            <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-        <?php endif; ?>
-
-        <!-- Login Form -->
-        <form method="post" action="">
-            <div class="mb-3">
-                <label for="email" class="form-label">Email Address</label>
-                <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
-            </div>
-            <div class="mb-3 position-relative">
-                <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
-                <i class="fas fa-eye password-toggle"></i>
-            </div>
-            <button type="submit" class="btn btn-primary">Login</button>
-        </form>
-
-        <!-- Footer -->
-        <div class="footer mt-3">© 2024 Your eCommerce Platform</div>
+    <div class="animated-bg">
+        <div class="bubbles">
+            <div class="bubble"></div>
+            <div class="bubble"></div>
+            <div class="bubble"></div>
+            <div class="bubble"></div>
+            <div class="bubble"></div>
+        </div>
+        <div class="waves">
+            <div class="wave"></div>
+            <div class="wave"></div>
+            <div class="wave"></div>
+        </div>
+        <div class="dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // JavaScript to toggle password visibility
-        const passwordToggle = document.querySelector('.password-toggle');
-        const passwordInput = document.querySelector('#password');
 
-        passwordToggle.addEventListener('click', function () {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            this.classList.toggle('fa-eye-slash');
-        });
+    <div class="login-container">
+        <!-- Banner Section -->
+        <div class="login-banner">
+            <div class="banner-pattern"></div>
+            <div class="banner-content">
+                <div class="brand-logo">
+                    <i class="bi bi-shield-lock"></i>
+                    Admin Portal
+                </div>
+                <div class="banner-header">
+                    <h2>Welcome Back, Admin!</h2>
+                    <p>Sign in to access your administrative dashboard and manage the store operations.</p>
+                </div>
+                <div class="features-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <div class="feature-text">
+                            Monitor sales and analytics
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+                        <div class="feature-text">
+                            Manage products and inventory
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <div class="feature-text">
+                            Handle customer orders
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        // Keep the eye icon visible when clicking anywhere on the input
-        passwordInput.addEventListener('focus', function () {
-            passwordToggle.style.display = 'flex';
-        });
+        <!-- Form Section -->
+        <div class="login-form">
+            <div class="form-header">
+                <h1>Admin Sign In</h1>
+                <p>Enter your credentials to continue</p>
+            </div>
 
-        passwordInput.addEventListener('blur', function () {
-            if (!passwordInput.value) {
-                passwordToggle.style.display = 'none';
-            }
-        });
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i>
+                    <?php echo htmlspecialchars($_SESSION['success_message']); ?>
+                </div>
+                <?php unset($_SESSION['success_message']); ?>
+            <?php endif; ?>
 
-    </script>
+            <?php if ($error_message): ?>
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <?php echo htmlspecialchars($error_message); ?>
+                </div>
+            <?php endif; ?>
+
+            <form method="post" action="admin_login.php">
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" 
+                           class="form-control" 
+                           name="email" 
+                           placeholder="Enter your email"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" 
+                           class="form-control" 
+                           name="password" 
+                           placeholder="Enter your password"
+                           required>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                </button>
+            </form>
+
+            <div class="form-footer">
+                Return to 
+                <a href="index.php">Store Front</a>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 

@@ -23,14 +23,18 @@ $cardExpiry = isset($_POST['cardExpiry']) ? $_POST['cardExpiry'] : '02/24';
             justify-content: center;
             align-items: center;
             margin: 0;
+            padding: 1rem;
         }
 
         .container {
             text-align: center;
+            width: 100%;
+            max-width: 500px;
         }
 
         .bank-card {
-            width: 450px;
+            width: 90%;
+            max-width: 450px;
             height: 250px;
             background: linear-gradient(135deg, #007bff, #00d4ff);
             border-radius: 15px;
@@ -41,6 +45,7 @@ $cardExpiry = isset($_POST['cardExpiry']) ? $_POST['cardExpiry'] : '02/24';
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            margin: 0 auto;
         }
 
         .bank-card-header {
@@ -54,9 +59,8 @@ $cardExpiry = isset($_POST['cardExpiry']) ? $_POST['cardExpiry'] : '02/24';
         }
 
         .bank-card-chip {
-            margin-top: 50px; /* Adjust this value to move the chip down */
-            margin-left: auto; /* Moves the chip to the right */
-            margin-right: 230px; /* Control how far right it is */
+            margin-top: 10%;
+            margin-left: 10%;
         }
 
         .bank-card-chip img {
@@ -64,7 +68,7 @@ $cardExpiry = isset($_POST['cardExpiry']) ? $_POST['cardExpiry'] : '02/24';
         }
 
         .bank-card-logo {
-            margin-top: -60px; /* Move the logo up */
+            margin-top: -12%;
         }
 
         .bank-card-logo img {
@@ -104,10 +108,10 @@ $cardExpiry = isset($_POST['cardExpiry']) ? $_POST['cardExpiry'] : '02/24';
             font-weight: bold;
             outline: none;
             text-align: left;
-            width: 400px;
+            width: 200px;
         }
         #cardExpiryInput {
-            margin-left: 125px; /* Adjust to move the expiry input a little to the right */
+            margin-left: 140px;
         }
 
         /* Cardholder input */
@@ -127,48 +131,86 @@ $cardExpiry = isset($_POST['cardExpiry']) ? $_POST['cardExpiry'] : '02/24';
             width: auto;
             border-radius: 8px;
         }
-                /* Smaller Media Query for Mobile */
-@media (max-width: 360px) {
-    .bank-card {
-        width: 320px;  /* Smaller width */
-        height: 200px;  /* Smaller height */
-        padding: 15px;  /* Reduced padding */
-    }
 
-    .bank-card-header img {
-        height: 30px;  /* Smaller image height */
-    }
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .bank-card {
+                height: 220px;
+            }
 
-    .bank-card-chip img {
-        width: 40px;  /* Smaller chip image width */
-    }
+            .bank-card-chip img {
+                width: 45px;
+            }
 
-    .bank-card-logo img {
-        height: 25px;  /* Smaller logo height */
-    }
+            .bank-card-number input {
+                font-size: 1.5rem;
+            }
 
-    .bank-card-number {
-        font-size: 1.6rem;  /* Smaller font size */
-    }
+            .bank-card-footer input {
+                width: 150px;
+            }
 
-    .bank-card-number input {
-        font-size: 1.6rem;  /* Smaller input font size */
-    }
+            #cardExpiryInput {
+                margin-left: 120px;
+            }
+        }
 
-    .bank-card-footer input {
-        font-size: 1rem;  /* Smaller font size for footer input */
-        width: 300px;  /* Adjust width for smaller screens */
-    }
+        @media (max-width: 576px) {
+            .bank-card {
+                height: 200px;
+                padding: 15px;
+            }
 
-    .bank-card-holder {
-        font-size: 1rem;  /* Smaller font size */
-    }
+            .bank-card-chip img {
+                width: 40px;
+            }
 
-    .btn-success {
-        font-size: 0.9rem;  /* Smaller button size */
-        padding: 8px 20px;  /* Reduced padding */
-    }
-}
+            .bank-card-logo img {
+                height: 25px;
+            }
+
+            .bank-card-number input {
+                font-size: 1.2rem;
+            }
+
+            .bank-card-footer input {
+                width: 120px;
+                font-size: 0.9rem;
+            }
+
+            #cardExpiryInput {
+                margin-left: 100px;
+            }
+        }
+
+        @media (max-width: 375px) {
+            .bank-card {
+                height: 180px;
+                padding: 12px;
+            }
+
+            .bank-card-chip img {
+                width: 35px;
+            }
+
+            .bank-card-logo img {
+                height: 20px;
+            }
+
+            .bank-card-number input {
+                font-size: 1rem;
+                letter-spacing: 2px;
+            }
+
+            .bank-card-footer input {
+                width: 100px;
+                font-size: 0.8rem;
+            }
+
+            #cardExpiryInput {
+                margin-left: 85px;
+            }
+        }
     </style>
 </head>
 <body>

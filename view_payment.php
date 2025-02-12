@@ -9,265 +9,281 @@ if (!isset($_SESSION['admin_id'])) {
     exit();
 }
 
-// Fetch admin's name from session
-$admin_name = $_SESSION['admin_name'];
+// Fetch admin's name from database
+$admin_id = $_SESSION['admin_id'];
+$admin_stmt = $conn->prepare("SELECT name FROM admins WHERE id = ?");
+$admin_stmt->bind_param("i", $admin_id);
+$admin_stmt->execute();
+$admin_result = $admin_stmt->get_result();
 
-// Fetch payment details from the database
-$stmt = $conn->prepare("SELECT payments.id, payments.card_number, payments.card_holder, payments.exp_date, payments.payment_status, payments.created_at, orders.id AS order_id, users.name AS user_name 
-                        FROM payments
-                        JOIN orders ON payments.order_id = orders.id
-                        JOIN users ON orders.user_id = users.id
-                        ORDER BY payments.created_at DESC");
-$stmt->execute();
-$result = $stmt->get_result();
-?>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Payment - Admin Dashboard</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        /* Navbar and Sidebar color */
-        .navbar, .sidebar {
-            background-color: #343a40; /* Same color for both navbar and sidebar */
-        }
-
-        .header-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 30px;
-        }
-
-        .header-container .logo {
-            width: 200px; /* Adjust width as needed */
-            height: auto; /* Maintain aspect ratio */
-            margin-right: 2px; /* Space between logo and heading */
-        }
-
-        .navbar {
-            margin-bottom: 30px;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            height: 100vh; /* Full viewport height */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            padding-top: 30px;
-            background-color: #343a40; /* Sidebar color */
-            display: flex;
-            flex-direction: column; /* Align items vertically */
-        }
-
-        .sidebar a {
-            color: #fff;
-            padding: 12px 18px; /* Slightly larger padding for better spacing */
-            text-decoration: none;
-            display: block;
-            margin: 8px 0; /* Adjusted margin for better spacing */
-            border-radius: 5px;
-            font-size: 16px; /* Slightly increased font size */
-        }
-
-        .sidebar a i {
-            font-size: 20px; /* Slightly increased icon size */
-            margin-right: 10px; /* Space between icon and text */
-        }
-
-        .sidebar a:hover {
-            background-color: #007bff; /* Change background on hover */
-        }
-
-        .main-content {
-            margin-left: 250px; /* Space for the sidebar */
-            padding: 20px; /* Padding for main content */
-            flex-grow: 1; /* Allow main content to grow */
-            height: 100vh; /* Ensure main content fills the viewport */
-            overflow-y: auto; /* Enable scrolling for main content */
-        }
-
-        .table th, .table td {
-            text-align: center;
-        }
-
-        /* Media Query for phones (up to 768px) */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: fixed; /* Fixed sidebar for mobile */
-                top: 0;
-                left: -250px; /* Start off-screen to the left */
-                width: 250px; /* Sidebar width */
-                background-color: #343a40; /* Sidebar background color */
-                padding-top: 30px;
-                height: 100vh; /* Ensure sidebar occupies full height */
-                transition: left 0.3s ease-in-out; /* Smooth animation */
-                z-index: 1050; /* Ensure it's above other content */
-                display: flex;
-                flex-direction: column; /* Align items vertically */
-            }
-
-            .sidebar.active {
-                left: 0; /* Move sidebar into view */
-            }
-
-            .sidebar a {
-                color: #fff;
-                padding: 12px 18px;
-                text-decoration: none;
-                display: block;
-                margin: 8px 0;
-                border-radius: 5px;
-                font-size: 16px;
-            }
-
-            .sidebar a i {
-                font-size: 20px;
-                margin-right: 10px;
-            }
-
-            .sidebar a:hover {
-                background-color: #007bff;
-            }
-
-            .main-content {
-                margin-left: 0; /* Remove sidebar margin for mobile */
-                height: 100vh; /* Ensure main content fills the viewport */
-                padding: 10px;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                overflow-y: auto; /* Enable scrolling for main content */
-            }
-
-/* Sidebar Toggle Button for Phones */
-.sidebar-toggle {
-    display: block;
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    z-index: 1050;
-    width: 30px; /* Smaller width */
-    height: 30px; /* Smaller height */
-    padding: 0;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px; /* Smaller icon size */
-    cursor: pointer;
+if ($admin_result->num_rows > 0) {
+    $admin_data = $admin_result->fetch_assoc();
+    $admin_name = $admin_data['name'];
+} else {
+    $admin_name = 'Admin'; // Default fallback
 }
 
+// Fetch payment details from the database
+$stmt = $conn->prepare("SELECT 
+    payments.id, 
+    payments.card_number, 
+    payments.card_holder, 
+    payments.exp_date, 
+    payments.payment_status, 
+    payments.created_at, 
+    orders.id AS order_id, 
+    orders.status AS order_status,
+    users.name AS user_name,
+    users.email AS user_email
+    FROM payments
+    JOIN orders ON payments.order_id = orders.id
+    JOIN users ON orders.user_id = users.id
+    ORDER BY payments.created_at DESC");
+$stmt->execute();
+$result = $stmt->get_result();
 
-            .sidebar-toggle:hover {
-                background-color: #0056b3; /* Darker blue on hover */
-            }
-        }
+require_once 'admin_header.php';
+?>
 
-    </style>
-</head>
-<body>
-
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container-fluid justify-content-end">
-        <!-- Admin Name and Logout Button -->
-        <span class="navbar-text me-3">
-            <i class="bi bi-person-circle me-2"></i> <?php echo htmlspecialchars($admin_name); ?>
-        </span>
-        <a href="admin_logout.php" class="btn btn-transparent text-white">Logout</a>
+<div class="dashboard-content">
+    <!-- Header Section -->
+    <div class="content-header-wrapper mb-4">
+        <div class="content-header p-4">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-12">
+                        <h1 class="header-title">
+                            <i class="bi bi-credit-card me-2"></i>Payment Details
+                        </h1>
+                        <p class="header-subtitle">View all payment transactions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</nav>
-
-
-<!-- Sidebar -->
-<div class="sidebar">
-    <h4 class="text-white text-center">Admin Panel</h4>
-    <a href="admin_dashboard.php"><i class="bi bi-house-door"></i> Dashboard</a>
-    <a href="products_section.php"><i class="bi bi-box"></i> Products</a>
-    <a href="orders_section.php"><i class="bi bi-cart-fill"></i> Orders</a>
-    <a href="shipping_fees.php"><i class="bi bi-truck"></i> Shipping Fees</a>
-    <a href="add_product.php"><i class="bi bi-plus-circle-fill"></i> Add Product</a>
-    <a href="view_payment.php"><i class="bi bi-credit-card-fill"></i> View Payment</a>
-    <a href="index.php" class="text-decoration-none"><i class="bi bi-globe"></i> View Website</a>
-</div>
-
-<!-- Sidebar Toggle Button for Phones -->
-<button class="sidebar-toggle d-lg-none">☰</button>
-
-<!-- Main content -->
-<div class="main-content">
-    <h2>View Payment Details</h2>
-    <p>Below are the details of all payments made by customers for their orders.</p>
 
     <!-- Payments Table -->
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>Payment ID</th>
-                <th>Order ID</th>
-                <th>User Name</th>
-                <th>Card Number</th>
-                <th>Card Holder</th>
-                <th>Exp. Date</th>
-                <th>Status</th>
-                <th>Payment Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($row = $result->fetch_assoc()): ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($row['id']); ?></td>
-                    <td><?php echo htmlspecialchars($row['order_id']); ?></td>
-                    <td><?php echo htmlspecialchars($row['user_name']); ?></td>
-                    <!-- Masking card number -->
-                    <td><?php echo '**** **** **** ' . htmlspecialchars(substr($row['card_number'], -4)); ?></td>
-                    <td><?php echo htmlspecialchars($row['card_holder']); ?></td>
-                    <td><?php echo htmlspecialchars($row['exp_date']); ?></td>
-                    <!-- Payment status with badge -->
-                    <td><span class="badge <?php echo $row['payment_status'] === 'Completed' ? 'bg-success' : 'bg-warning'; ?>"><?php echo htmlspecialchars($row['payment_status']); ?></span></td>
-                    <td><?php echo htmlspecialchars($row['created_at']); ?></td>
-                </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
-
-    <?php 
-      // Free result set and close statement
-      $result->free();
-      $stmt->close();
-      $conn->close();
-    ?>
+    <div class="container-fluid">
+        <div class="modern-card">
+            <div class="table-responsive">
+                <table class="table modern-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>Order Details</th>
+                            <th>Customer</th>
+                            <th>Payment Info</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($row = $result->fetch_assoc()): ?>
+                            <tr>
+                                <td>#<?php echo htmlspecialchars($row['id']); ?></td>
+                                <td>
+                                    <div class="order-info">
+                                        <div class="order-number">Order #<?php echo htmlspecialchars($row['order_id']); ?></div>
+                                        <span class="status-badge <?php echo strtolower($row['order_status']); ?>">
+                                            <?php echo htmlspecialchars($row['order_status']); ?>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="customer-info">
+                                        <div class="customer-name"><?php echo htmlspecialchars($row['user_name']); ?></div>
+                                        <div class="customer-email"><?php echo htmlspecialchars($row['user_email']); ?></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="payment-info">
+                                        <div class="card-number">**** **** **** <?php echo htmlspecialchars(substr($row['card_number'], -4)); ?></div>
+                                        <div class="card-holder"><?php echo htmlspecialchars($row['card_holder']); ?></div>
+                                        <div class="exp-date">Exp: <?php echo htmlspecialchars($row['exp_date']); ?></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge <?php echo strtolower($row['payment_status']); ?>">
+                                        <?php echo htmlspecialchars($row['payment_status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="date-info">
+                                        <div><?php echo date('M j, Y', strtotime($row['created_at'])); ?></div>
+                                        <div class="time"><?php echo date('g:i A', strtotime($row['created_at'])); ?></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="view_order.php?id=<?php echo $row['order_id']; ?>" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="View Order">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Bootstrap JS (Optional, for interactive components) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // Sidebar toggle functionality
-    document.querySelector('.sidebar-toggle').addEventListener('click', function() {
-        const sidebar = document.querySelector('.sidebar');
-        sidebar.classList.toggle('active');
-    });
+<style>
+.modern-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
 
-    // Sticky sidebar toggle button
-    const sidebarToggle = document.querySelector('.sidebar-toggle');
-    window.addEventListener('scroll', function() {
-        if (window.innerWidth <= 768) {
-            if (window.scrollY > 10) {
-                sidebarToggle.classList.add('sticky');
-            } else {
-                sidebarToggle.classList.remove('sticky');
-            }
-        }
-    });
-</script>
+.modern-table {
+    margin: 0;
+}
 
+.modern-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.modern-table td {
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+.status-badge {
+    padding: 0.5em 1em;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-badge.completed {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-badge.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.failed {
+    background: #f8d7da;
+    color: #842029;
+}
+
+.content-header-wrapper {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    border-radius: 15px;
+    margin: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header-title {
+    color: white;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.header-subtitle {
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0.5rem 0 0;
+}
+
+/* Hover effect for table rows */
+.modern-table tbody tr {
+    transition: all 0.3s ease;
+}
+
+.modern-table tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.order-info, .customer-info, .payment-info, .date-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.order-number {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.customer-name {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.customer-email {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.card-number {
+    font-family: monospace;
+    font-weight: 600;
+}
+
+.card-holder {
+    font-size: 0.9rem;
+}
+
+.exp-date {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.time {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-buttons .btn {
+    padding: 0.4rem 0.6rem;
+}
+
+.status-badge.processing {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status-badge.completed {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-badge.cancelled {
+    background: #f8d7da;
+    color: #842029;
+}
+</style>
+
+<?php 
+// Free result set and close statement
+$result->free();
+$stmt->close();
+$conn->close();
+?>
+
+</div> <!-- Close main-content div from admin_header.php -->
 </body>
 </html>

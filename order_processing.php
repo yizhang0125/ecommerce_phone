@@ -14,10 +14,16 @@ if (!isset($_SESSION['user_id'])) {
 
 // Retrieve POST data
 $user_id = $_SESSION['user_id'];
-$shipping_address = $_POST['shipping_address'];
-$shipping_city = $_POST['shipping_city'];
-$shipping_state = $_POST['shipping_state'];
-$shipping_zip = $_POST['shipping_zip'];
+$shipping_address = trim($_POST['shipping_address']);
+$shipping_city = trim($_POST['shipping_city']);
+$shipping_state = trim($_POST['shipping_state']);
+$shipping_zip = trim($_POST['shipping_zip']);
+
+// Validate shipping data
+if (empty($shipping_address) || empty($shipping_city) || 
+    empty($shipping_state) || !preg_match('/^\d{5}$/', $shipping_zip)) {
+    die("Invalid shipping information provided.");
+}
 
 // Fetch the current shipping fee from the settings table
 $stmt = $conn->prepare("SELECT shipping_fee FROM settings WHERE id = 1");
@@ -55,15 +61,38 @@ $total_price += $current_shipping_fee;
 $conn->begin_transaction();
 
 try {
-    // Insert the order into the orders table
-    $stmt = $conn->prepare("INSERT INTO orders (user_id, total_price, status, shipping_address, shipping_city, shipping_state, shipping_zip) 
-                            VALUES (?, ?, 'Pending', ?, ?, ?, ?)");
-    if (!$stmt) {
-        throw new Exception("Failed to prepare statement: " . $conn->error);
-    }
-    $stmt->bind_param("idssss", $user_id, $total_price, $shipping_address, $shipping_city, $shipping_state, $shipping_zip);
+    // Insert order with shipping information
+    $stmt = $conn->prepare("
+        INSERT INTO orders (
+            user_id, 
+            total_price, 
+            status,
+            shipping_status,
+            shipping_address, 
+            shipping_city, 
+            shipping_state, 
+            shipping_zip,
+            order_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+    ");
+
+    $status = 'Pending';
+    $shipping_status = 'Pending';
+
+    $stmt->bind_param(
+        "idssssss", 
+        $user_id, 
+        $total_price, 
+        $status,
+        $shipping_status,
+        $shipping_address, 
+        $shipping_city, 
+        $shipping_state, 
+        $shipping_zip
+    );
+
     if (!$stmt->execute()) {
-        throw new Exception("Failed to execute statement: " . $stmt->error);
+        throw new Exception("Failed to create order: " . $stmt->error);
     }
     $order_id = $stmt->insert_id;
     $stmt->close();

@@ -6,68 +6,83 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require 'db_connection.php';
 
-if (isset($_POST['product_id'], $_POST['quantity'])) {
-    $product_id = $_POST['product_id'];
-    $quantity = $_POST['quantity'];
-    $user_id = $_SESSION['user_id'];
+header('Content-Type: application/json');
 
-    $stmt = $conn->prepare("UPDATE cart SET quantity = ? WHERE user_id = ? AND product_id = ?");
-    $stmt->bind_param("iii", $quantity, $user_id, $product_id);
-    $stmt->execute();
+// Get the POST data
+$data = json_decode(file_get_contents('php://input'), true);
+$cart_id = $data['cart_id'] ?? 0;
+$change = $data['change'] ?? 0;
 
-    // Redirect to cart page after updating
-    header("Location: view_cart.php");
-    exit(); // Ensure no further code is executed after redirect
+if (!isset($_SESSION['user_id']) || !$cart_id) {
+    echo json_encode(['success' => false, 'message' => 'Invalid request']);
+    exit;
 }
-?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update Cart</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <h2 class="text-center mt-5">Update Cart</h2>
-                <form method="post" action="update_cart.php">
-                    <?php
-                    // No need to call session_start() again here
-                    require 'db_connection.php';
+$user_id = $_SESSION['user_id'];
 
-                    $user_id = $_SESSION['user_id'];
-                    $stmt = $conn->prepare("SELECT cart.product_id, cart.quantity, products.name, products.price FROM cart 
-                                            JOIN products ON cart.product_id = products.id WHERE cart.user_id = ?");
-                    $stmt->bind_param("i", $user_id);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
+// Get current cart item
+$stmt = $conn->prepare("
+    SELECT c.quantity, p.stock_quantity, p.price 
+    FROM cart c 
+    JOIN products p ON c.product_id = p.id 
+    WHERE c.id = ? AND c.user_id = ?
+");
+$stmt->bind_param("ii", $cart_id, $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
 
-                    while ($row = $result->fetch_assoc()):
-                    ?>
-                        <div class="mb-3">
-                            <label for="product_quantity_<?php echo $row['product_id']; ?>" class="form-label">
-                                <?php echo htmlspecialchars($row['name']); ?> (Price: $<?php echo htmlspecialchars($row['price']); ?>)
-                            </label>
-                            <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($row['product_id']); ?>">
-                            <input type="number" class="form-control" id="product_quantity_<?php echo $row['product_id']; ?>" name="quantity" min="1" value="<?php echo htmlspecialchars($row['quantity']); ?>" required>
-                        </div>
-                    <?php endwhile; ?>
+if ($result->num_rows === 0) {
+    echo json_encode(['success' => false, 'message' => 'Cart item not found']);
+    exit;
+}
 
-                    <button type="submit" class="btn btn-primary w-100">Update Cart</button>
-                </form>
-                <p class="text-center mt-3">
-                    <a href="view_cart.php" class="btn btn-secondary">Back to Cart</a>
-                </p>
-            </div>
-        </div>
-    </div>
+$cart_item = $result->fetch_assoc();
+$new_quantity = $cart_item['quantity'];
 
-    <!-- Bootstrap JS (Optional, for interactive components) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+if (is_numeric($change)) {
+    // Updating quantity
+    $new_quantity = $cart_item['quantity'] + $change;
+    
+    // Check stock limit and minimum quantity
+    if ($new_quantity > $cart_item['stock_quantity']) {
+        $new_quantity = $cart_item['stock_quantity'];
+    }
+    if ($new_quantity < 0) {
+        $new_quantity = 0;
+    }
+} else {
+    // Direct quantity update
+    $new_quantity = max(0, min((int)$change, $cart_item['stock_quantity']));
+}
+
+if ($new_quantity === 0) {
+    // Delete the item if quantity is 0
+    $stmt = $conn->prepare("DELETE FROM cart WHERE id = ? AND user_id = ?");
+    $stmt->bind_param("ii", $cart_id, $user_id);
+    $stmt->execute();
+} else {
+    // Update the quantity
+    $stmt = $conn->prepare("UPDATE cart SET quantity = ? WHERE id = ? AND user_id = ?");
+    $stmt->bind_param("iii", $new_quantity, $cart_id, $user_id);
+    $stmt->execute();
+}
+
+// Get new cart total
+$stmt = $conn->prepare("
+    SELECT SUM(c.quantity * p.price) as total, SUM(c.quantity) as count
+    FROM cart c 
+    JOIN products p ON c.product_id = p.id 
+    WHERE c.user_id = ?
+");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$cart_data = $result->fetch_assoc();
+
+echo json_encode([
+    'success' => true,
+    'newQuantity' => $new_quantity,
+    'newTotal' => (float)$cart_data['total'],
+    'cartCount' => (int)$cart_data['count'],
+    'cartEmpty' => $cart_data['count'] == 0
+]);

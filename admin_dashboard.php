@@ -1,187 +1,50 @@
 <?php 
-    session_start();
+require_once 'admin_header.php';
     require 'db_connection.php';
 
-    // Check if the admin is logged in
-    if (!isset($_SESSION['admin_id'])) {
-        // Redirect to the login page if not logged in
-        header('Location: admin_login.php');
-        exit();
-    }
-
-    // Fetch admin's name from session
-    $admin_name = $_SESSION['admin_name'];
-    
+// Success message handling
     $success_message = isset($_SESSION['login_success']) ? $_SESSION['login_success'] : null;
-
-    // Clear the success message after displaying it
     unset($_SESSION['login_success']);
+
+// Fetch recent orders with order items
+$recent_orders_query = "SELECT o.*, u.name as customer_name, 
+                              GROUP_CONCAT(p.name SEPARATOR ', ') as product_names,
+                              o.total_price as order_total
+                       FROM orders o 
+                       JOIN users u ON o.user_id = u.id 
+                       JOIN order_items oi ON o.id = oi.order_id
+                       JOIN products p ON oi.product_id = p.id
+                       GROUP BY o.id
+                       ORDER BY o.order_date DESC 
+                       LIMIT 5";
+$recent_orders_result = $conn->query($recent_orders_query);
+
+// Fetch total orders count
+$total_orders_query = "SELECT COUNT(DISTINCT order_id) as total FROM order_items";
+$total_orders = $conn->query($total_orders_query)->fetch_assoc()['total'];
+
+// Fetch total revenue from completed orders
+$revenue_query = "SELECT SUM(total_price) as total 
+                 FROM orders 
+                 WHERE status = 'completed'";
+$total_revenue = $conn->query($revenue_query)->fetch_assoc()['total'] ?? 0;
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        /* Navbar and Sidebar color */
-        .navbar, .sidebar {
-            background-color: #343a40; /* Same color for both navbar and sidebar */
-        }
-
-        .header-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 30px;
-        }
-        .header-container .logo {
-            width: 200px; /* Adjust width as needed */
-            height: auto; /* Maintain aspect ratio */
-            margin-right: 2px; /* Space between logo and heading */
-        }
-        .navbar {
-            margin-bottom: 30px;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            padding-top: 30px;
-            transition: left 0.3s ease;
-            z-index: 1050; /* Ensure it's above other content */
-        }
-
-        .sidebar a {
-            color: #fff;
-            padding: 12px 18px; /* Slightly larger padding for better spacing */
-            text-decoration: none;
-            display: block;
-            margin: 8px 0; /* Adjusted margin for better spacing */
-            border-radius: 5px;
-            font-size: 16px; /* Slightly increased font size */
-        }
-
-        .sidebar a i {
-            font-size: 20px; /* Slightly increased icon size */
-            margin-right: 10px; /* Space between icon and text */
-        }
-
-        .sidebar a:hover {
-            background-color: #007bff;
-        }
-
-        /* Main content styles */
-        .main-content {
-            margin-left: 260px;
-            padding: 20px;
-        }
-
-        /* Box Cards for Actions */
-        .action-box {
-            text-align: center;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-        }
-        .action-box:hover {
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            transform: translateY(-5px);
-        }
-        .action-box i {
-            font-size: 50px;
-            margin-bottom: 10px;
-        }
-        .action-box a {
-            display: block;
-            margin-top: 10px;
-            font-weight: bold;
-            text-decoration: none;
-            color: #007bff;
-        }
-
-        /* Media Query for phones (up to 768px) */
-        @media (max-width: 768px) {
-            .sidebar {
-                left: -255px; /* Hidden initially */
-            }
-
-            .main-content {
-                margin-left: 0; /* Full width for main content */
-            }
-
-            .sidebar-toggle {
-            display: block;
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1050;
-            width: 30px; /* Smaller width */
-            height: 30px; /* Smaller height */
-            padding: 0;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px; /* Smaller icon size */
-            cursor: pointer;
-        }
-
-
-            .sidebar-toggle.sticky {
-                position: fixed;
-                top: 10px;
-                left: 10px;
-                z-index: 1050;
-            }
-        }
-    </style>
-</head>
-<body>
-
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container-fluid">
-        <!-- Admin Name and Logout Button -->
-        <div class="ms-auto d-flex align-items-center">
-            <span class="navbar-text me-3">
-                <i class="bi bi-person-circle me-2"></i> <?php echo htmlspecialchars($admin_name); ?>
-            </span>
-            <a href="admin_logout.php" class="btn btn-transparent text-white">Logout</a>
+<!-- Main content -->
+<div class="dashboard-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="header-title">
+                    <i class="bi bi-speedometer2 me-2"></i>Dashboard Overview
+                </h1>
+                <p class="header-subtitle">Monitor and manage your store performance</p>
+            </div>
         </div>
     </div>
-</nav>
 
-
-
-<!-- Sidebar -->
-<div class="sidebar">
-    <h4 class="text-white text-center">Admin Panel</h4>
-    <a href="admin_dashboard.php"><i class="bi bi-house-door"></i> Dashboard</a>
-    <a href="products_section.php"><i class="bi bi-box"></i> Products</a>
-    <a href="orders_section.php"><i class="bi bi-cart-fill"></i> Orders</a>
-    <a href="shipping_fees.php"><i class="bi bi-truck"></i> Shipping Fees</a>
-    <a href="add_product.php"><i class="bi bi-plus-circle-fill"></i> Add Product</a>
-    <a href="view_payment.php"><i class="bi bi-credit-card-fill"></i> View Payment</a>
-    <a href="monthly_sales_chart.php"><i class="bi bi-bar-chart-fill"></i> Monthly Sales</a> <!-- New link for Monthly Sales -->
-    <a href="index.php" class="text-decoration-none"><i class="bi bi-globe"></i> View Website</a>
-</div>
-
-<!-- Main content -->
-<div class="main-content">
-    <!-- Success Message (Placed in the main content area) -->
+    <!-- Success Message -->
     <?php if ($success_message): ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <?php echo htmlspecialchars($success_message); ?>
@@ -189,8 +52,117 @@
     </div>
     <?php endif; ?>
 
-    <h2>Welcome to the Admin Dashboard</h2>
-    <p>Use the boxes below to manage products, orders, and other website settings.</p>
+    <!-- Statistics Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stats-card bg-primary text-white">
+                <div class="stats-icon">
+                    <i class="bi bi-cart-check"></i>
+                </div>
+                <div class="stats-info">
+                    <h3><?php echo number_format($total_orders); ?></h3>
+                    <p>Total Orders</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card bg-success text-white">
+                <div class="stats-icon">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+                <div class="stats-info">
+                    <h3>$<?php echo number_format($total_revenue, 2); ?></h3>
+                    <p>Total Revenue</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card bg-info text-white">
+                <div class="stats-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stats-info">
+                    <h3><?php echo number_format($conn->query("SELECT COUNT(*) as total FROM users")->fetch_assoc()['total']); ?></h3>
+                    <p>Total Customers</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-clock-history me-2"></i>Recent Orders
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Products</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Shipping Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($order = $recent_orders_result->fetch_assoc()): ?>
+                        <tr>
+                            <td>#<?php echo $order['id']; ?></td>
+                            <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
+                            <td>
+                                <?php 
+                                $products = htmlspecialchars($order['product_names']);
+                                echo strlen($products) > 50 ? 
+                                     substr($products, 0, 47) . '...' : 
+                                     $products; 
+                                ?>
+                            </td>
+                            <td>$<?php echo number_format($order['order_total'], 2); ?></td>
+                            <td>
+                                <span class="badge bg-<?php 
+                                    echo match($order['status']) {
+                                        'completed' => 'success',
+                                        'pending' => 'warning',
+                                        'cancelled' => 'danger',
+                                        default => 'secondary'
+                                    };
+                                ?>">
+                                    <?php echo ucfirst($order['status']); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-<?php 
+                                    echo match($order['shipping_status']) {
+                                        'delivered' => 'success',
+                                        'shipped' => 'info',
+                                        'processing' => 'warning',
+                                        default => 'secondary'
+                                    };
+                                ?>">
+                                    <?php echo ucfirst($order['shipping_status']); ?>
+                                </span>
+                            </td>
+                            <td><?php echo date('M d, Y', strtotime($order['order_date'])); ?></td>
+                            <td>
+                                <a href="view_order.php?id=<?php echo $order['id']; ?>" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
     <!-- Action Boxes -->
     <div class="row">
@@ -268,28 +240,133 @@
     </div>
 </div>
 
-<!-- Sidebar Toggle Button for Phones -->
-<button class="sidebar-toggle d-lg-none">☰</button>
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
 
-<!-- Bootstrap JS (Optional, for interactive components) -->
-<script>
-    document.querySelector('.sidebar-toggle').addEventListener('click', function() {
-        const sidebar = document.querySelector('.sidebar');
-        sidebar.style.left = sidebar.style.left === '0px' ? '-255px' : '0px';
-    });
+    .header-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+        color: white;
+        display: flex;
+        align-items: center;
+    }
 
-    // Sticky sidebar toggle button
-    const sidebarToggle = document.querySelector('.sidebar-toggle');
-    window.addEventListener('scroll', function() {
-        if (window.innerWidth <= 768) {
-            if (window.scrollY > 10) {
-                sidebarToggle.classList.add('sticky');
-            } else {
-                sidebarToggle.classList.remove('sticky');
-            }
-        }
-    });
-</script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    .header-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        margin: 0.5rem 0 0;
+        font-size: 1.1rem;
+    }
+
+    /* Box Cards for Actions */
+    .action-box {
+        text-align: center;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        background-color: #f8f9fa;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .action-box:hover {
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        transform: translateY(-5px);
+    }
+
+    .action-box i {
+        font-size: 50px;
+        margin-bottom: 10px;
+    }
+
+    .action-box a {
+        display: block;
+        margin-top: 10px;
+        font-weight: bold;
+        text-decoration: none;
+        color: #007bff;
+    }
+
+    /* New styles for statistics cards */
+    .stats-card {
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .stats-icon {
+        font-size: 2.5rem;
+        margin-right: 20px;
+        opacity: 0.8;
+    }
+
+    .stats-info h3 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
+
+    .stats-info p {
+        margin: 5px 0 0;
+        opacity: 0.8;
+    }
+
+    /* Table styles */
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .badge {
+        padding: 0.5em 0.8em;
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+
+    .card-header {
+        background-color: #fff;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+        padding: 1rem;
+    }
+
+    .card-title {
+        color: #333;
+        font-weight: 600;
+    }
+
+    .dashboard-content {
+        padding: 20px;
+    }
+</style>
+
+</div> <!-- Close main-content div from admin_header.php -->
 </body>
 </html>

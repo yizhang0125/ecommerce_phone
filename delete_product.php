@@ -2,32 +2,42 @@
 session_start();
 require 'db_connection.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['id']) && !empty($_POST['id'])) {
-        $id = $_POST['id'];
-
-        if (is_numeric($id)) {
-            $stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
-            if ($stmt) {
-                $stmt->bind_param("i", $id);
-                if ($stmt->execute()) {
-                    $_SESSION['success_message'] = "Product deleted successfully!";
-                    header("Location: products_section.php");
-                    exit(); // Ensure no further code is executed
-                } else {
-                    echo "Error deleting record: " . $stmt->error;
-                }
-                $stmt->close();
-            } else {
-                echo "Error preparing statement: " . $conn->error;
-            }
-        } else {
-            echo "Invalid ID specified.";
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+    $product_id = $_POST['id'];
+    
+    try {
+        // First get the image path to delete the file
+        $query = "SELECT image FROM products WHERE id = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("i", $product_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $product = $result->fetch_assoc();
+        
+        // Delete the image file if it exists
+        if ($product && $product['image'] && file_exists($product['image'])) {
+            unlink($product['image']);
         }
-    } else {
-        echo "No ID specified.";
+        
+        // Delete the product from database
+        $delete_query = "DELETE FROM products WHERE id = ?";
+        $stmt = $conn->prepare($delete_query);
+        $stmt->bind_param("i", $product_id);
+        
+        if ($stmt->execute()) {
+            $_SESSION['success_message'] = "Product deleted successfully!";
+        } else {
+            throw new Exception("Error deleting product from database");
+        }
+        
+    } catch (Exception $e) {
+        $_SESSION['error_message'] = "Error: " . $e->getMessage();
     }
+    
+    header('Location: products_section.php');
+    exit();
 } else {
-    echo "Invalid request method.";
+    header('Location: products_section.php');
+    exit();
 }
 ?>

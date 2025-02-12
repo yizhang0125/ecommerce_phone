@@ -32,22 +32,53 @@ if (isset($_POST['product_id'], $_POST['quantity'])) {
         }
 
         // Execute the query to add/update the cart
-        $stmt->execute();
+        if ($stmt->execute()) {
+            // Reduce the stock quantity in the products table
+            $new_stock_quantity = $product['stock_quantity'] - $quantity;
+            $stmt = $conn->prepare("UPDATE products SET stock_quantity = ? WHERE id = ?");
+            $stmt->bind_param("ii", $new_stock_quantity, $product_id);
+            $stmt->execute();
 
-        // Reduce the stock quantity in the products table
-        $new_stock_quantity = $product['stock_quantity'] - $quantity;
-        $stmt = $conn->prepare("UPDATE products SET stock_quantity = ? WHERE id = ?");
-        $stmt->bind_param("ii", $new_stock_quantity, $product_id);
-        $stmt->execute();
+            // Calculate new cart count
+            $cart_stmt = $conn->prepare("
+                SELECT SUM(quantity) as total_items 
+                FROM cart 
+                WHERE user_id = ?
+            ");
+            $cart_stmt->bind_param("i", $user_id);
+            $cart_stmt->execute();
+            $cart_result = $cart_stmt->get_result();
+            $cart_count = 0;
+            if ($cart_result->num_rows > 0) {
+                $cart_count = (int)$cart_result->fetch_assoc()['total_items'];
+            }
 
-        $_SESSION['message'] = "Product added to cart and stock updated!";
+            // Return success response
+            echo json_encode([
+                'success' => true,
+                'cartCount' => $cart_count,
+                'message' => 'Product added to cart successfully!'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to add product to cart.'
+            ]);
+        }
     } else {
-        $_SESSION['error'] = "Not enough stock available!";
+        echo json_encode([
+            'success' => false,
+            'message' => 'Not enough stock available!'
+        ]);
     }
-
-    // Redirect to view_cart.php
-    header("Location: view_cart.php");
+} else {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid request parameters.'
+    ]);
 }
+
+exit;
 ?>
 
 <!DOCTYPE html>
