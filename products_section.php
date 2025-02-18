@@ -63,6 +63,23 @@ $stmt = $conn->prepare($query);
 $stmt->bind_param($types, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
+
+// Delete product
+if (isset($_POST['delete_product'])) {
+    $product_id = $_POST['product_id'];
+    
+    // Delete product (related records will be deleted automatically)
+    $stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
+    $stmt->bind_param("i", $product_id);
+    
+    if ($stmt->execute()) {
+        $_SESSION['success_message'] = "Product deleted successfully!";
+    } else {
+        $_SESSION['error_message'] = "Error deleting product: " . $conn->error;
+    }
+    header("Location: products_section.php");
+    exit();
+}
 ?>
 
 <div class="dashboard-content">
